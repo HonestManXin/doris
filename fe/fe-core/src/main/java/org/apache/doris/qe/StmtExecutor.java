@@ -601,6 +601,22 @@ public class StmtExecutor {
         }
     }
 
+    public void setETLStatus(LogicalPlanAdapter adapter) {
+        LogicalPlan logicalPlan = adapter.getLogicalPlan();
+        if (logicalPlan instanceof InsertIntoTableCommand
+                || logicalPlan instanceof InsertOverwriteTableCommand) {
+            // insert or insert select
+            context.getStatementContext().setIsETL(true);
+        } else if (adapter.hasOutFileClause()) {
+            // export or select into outfile
+            context.getStatementContext().setIsETL(true);
+        } else if ((logicalPlan instanceof CreateTableCommand) && ((CreateTableCommand) logicalPlan).isCtasCommand()) {
+            context.getStatementContext().setIsETL(true);
+        } else {
+            context.getStatementContext().setIsETL(false);
+        }
+    }
+
     private void executeByNereids(TUniqueId queryId) throws Exception {
         if (LOG.isDebugEnabled()) {
             LOG.debug("Nereids start to execute query:\n {}", originStmt.originStmt);
@@ -622,6 +638,7 @@ public class StmtExecutor {
         context.getState().setNereids(true);
         LogicalPlan logicalPlan = ((LogicalPlanAdapter) parsedStmt).getLogicalPlan();
         checkSqlBlocked(logicalPlan.getClass());
+        setETLStatus((LogicalPlanAdapter) parsedStmt);
         if (context.getCommand() == MysqlCommand.COM_STMT_PREPARE) {
             if (isForwardToMaster()) {
                 throw new UserException("Forward master command is not supported for prepare statement");

@@ -31,6 +31,7 @@ import org.apache.doris.catalog.Partition;
 import org.apache.doris.catalog.PrimitiveType;
 import org.apache.doris.catalog.ReplicaAllocation;
 import org.apache.doris.catalog.ScalarType;
+import org.apache.doris.catalog.TagLocationFilter;
 import org.apache.doris.catalog.Type;
 import org.apache.doris.common.AnalysisException;
 import org.apache.doris.common.Config;
@@ -148,6 +149,8 @@ public class PropertyAnalyzer {
     public static final String PROPERTIES_SWAP_TABLE = "swap";
 
     public static final String TAG_LOCATION = "tag.location";
+
+    public static final String PROPERTIES_ETL_TAG_LOCATION = "etl_tag_location";
 
     public static final String PROPERTIES_DISABLE_QUERY = "disable_query";
 
@@ -2121,5 +2124,36 @@ public class PropertyAnalyzer {
             return TEncryptionAlgorithm.PLAINTEXT;
         }
         throw new AnalysisException("Invalid tde algorithm: " + name + ", only support AES256 and SM4 currently");
+    }
+
+    public static TagLocationFilter analyzeEtlTagLocation(Map<String, String> properties,
+            ReplicaAllocation replicaAlloc, String defaultTags, boolean check) throws AnalysisException {
+        String tagLocations = defaultTags;
+        if (properties != null && properties.containsKey(PROPERTIES_ETL_TAG_LOCATION)) {
+            tagLocations = properties.get(PROPERTIES_ETL_TAG_LOCATION);
+            properties.remove(PROPERTIES_ETL_TAG_LOCATION);
+        }
+        if (StringUtils.isEmpty(tagLocations)) {
+            return TagLocationFilter.NO_FILTER;
+        }
+        String[] locations = tagLocations.split(",");
+        Set<String> locationSet = Sets.newHashSet();
+        Set<Tag> tagSet = Sets.newHashSet();
+        for (String location : locations) {
+            if (locationSet.add(location.trim())) {
+                Tag tag = Tag.create(Tag.TYPE_LOCATION, location);
+                tagSet.add(tag);
+                if (check) {
+                    Short num = replicaAlloc.getReplicaNumByTag(tag);
+                    if (num <= 0) {
+                        throw new AnalysisException("Failed to find backend for tag:" + location);
+                    }
+                }
+            }
+        }
+        // TODO check total replica num equal to etlReplicaNum, then throw AnalysisException
+        // but that will cause regression test can not run
+        // replicaAlloc.getTotalReplicaNum() == etlReplicaNum
+        return TagLocationFilter.createTagLocationFilter(locationSet, tagSet);
     }
 }

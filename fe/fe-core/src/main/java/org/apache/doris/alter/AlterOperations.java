@@ -107,6 +107,14 @@ public class AlterOperations {
             || clause.getProperties().containsKey(PropertyAnalyzer.PROPERTIES_BINLOG_MAX_HISTORY_NUMS));
     }
 
+    public boolean checkEtlTagLocation(List<AlterOp> alterOps) {
+        return alterOps.stream().filter(tableOp ->
+                tableOp instanceof ModifyTablePropertiesOp
+        ).anyMatch(clause ->
+                clause.getProperties().containsKey(PropertyAnalyzer.PROPERTIES_ETL_TAG_LOCATION)
+        );
+    }
+
     public boolean isBeingSynced(List<AlterOp> alterOps) {
         return alterOps.stream().filter(tableOp ->
             tableOp instanceof ModifyTablePropertiesOp

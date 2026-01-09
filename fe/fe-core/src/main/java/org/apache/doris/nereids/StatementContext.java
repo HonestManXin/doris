@@ -283,6 +283,7 @@ public class StatementContext implements Closeable {
 
     private boolean isInsert = false;
     private boolean skipPrunePredicate = false;
+    private boolean isETL = false;
 
     private Optional<Map<TableIf, Set<Expression>>> mvRefreshPredicates = Optional.empty();
 
@@ -1013,6 +1014,14 @@ public class StatementContext implements Closeable {
 
     public boolean isInsert() {
         return isInsert;
+    }
+
+    public void setIsETL(boolean isETL) {
+        this.isETL = isETL;
+    }
+
+    public boolean isETL() {
+        return isETL;
     }
 
     public Optional<Map<TableIf, Set<Expression>>> getMvRefreshPredicates() {

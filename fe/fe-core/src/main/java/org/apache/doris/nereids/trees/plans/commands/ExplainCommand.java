@@ -99,6 +99,7 @@ public class ExplainCommand extends Command implements NoForward {
         ExplainOptions explainOptions = new ExplainOptions(level, showPlanProcess);
         logicalPlanAdapter.setIsExplain(explainOptions);
         executor.setParsedStmt(logicalPlanAdapter);
+        executor.setETLStatus(logicalPlanAdapter);
         if (ctx.getSessionVariable().isEnableMaterializedViewRewrite()) {
             ctx.getStatementContext().addPlannerHook(InitMaterializationContextHook.INSTANCE);
         }

@@ -3809,4 +3809,12 @@ public class OlapTable extends Table implements MTMVRelatedTableIf, GsonPostProc
     public String getSeqMappingKey(String column) {
         return getOrCreatTableProperty().getSeqMappingKey(column);
     }
+
+    public void setEtlTagLocation(TagLocationFilter filter) {
+        getOrCreatTableProperty().setEtlTagLocation(filter);
+    }
+
+    public TagLocationFilter getEtlTagLocation() {
+        return getOrCreatTableProperty().getEtlTagLocation();
+    }
 }

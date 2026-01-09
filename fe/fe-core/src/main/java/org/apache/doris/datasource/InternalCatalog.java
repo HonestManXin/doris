@@ -80,6 +80,7 @@ import org.apache.doris.catalog.TableIf.TableType;
 import org.apache.doris.catalog.Tablet;
 import org.apache.doris.catalog.TabletInvertedIndex;
 import org.apache.doris.catalog.TabletMeta;
+import org.apache.doris.catalog.TagLocationFilter;
 import org.apache.doris.catalog.Type;
 import org.apache.doris.catalog.View;
 import org.apache.doris.clone.DynamicPartitionScheduler;
@@ -2360,6 +2361,15 @@ public class InternalCatalog implements CatalogIf<Database> {
                 + "default replica num [" + replicaAlloc.getTotalReplicaNum() + "]");
         }
         olapTable.setMinLoadReplicaNum(minLoadReplicaNum);
+
+        // check etl tag location
+        try {
+            TagLocationFilter tagFilter = PropertyAnalyzer.analyzeEtlTagLocation(properties, replicaAlloc,
+                    Config.etl_tag_location, true);
+            olapTable.setEtlTagLocation(tagFilter);
+        } catch (AnalysisException e) {
+            throw new DdlException(e.getMessage());
+        }
 
         // get use light schema change
         Boolean enableLightSchemaChange;

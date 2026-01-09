@@ -6064,7 +6064,8 @@ public class Env {
                 .buildTimeSeriesCompactionLevelThreshold()
                 .buildTTLSeconds()
                 .buildAutoAnalyzeProperty()
-                .buildPartitionRetentionCount();
+                .buildPartitionRetentionCount()
+                .buildEtlTagLocation();
 
         // need to update partition info meta
         for (Partition partition : table.getPartitions()) {

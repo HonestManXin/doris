@@ -55,6 +55,7 @@ import org.apache.doris.catalog.Table;
 import org.apache.doris.catalog.TableIf.TableType;
 import org.apache.doris.catalog.Tablet;
 import org.apache.doris.catalog.TabletMeta;
+import org.apache.doris.catalog.TagLocationFilter;
 import org.apache.doris.cloud.qe.ComputeGroupException;
 import org.apache.doris.common.AnalysisException;
 import org.apache.doris.common.Config;
@@ -3660,6 +3661,42 @@ public class SchemaChangeHandler extends AlterHandler {
         }
 
         return false;
+    }
+
+    public void updateEtlTagLocation(Database db, OlapTable olapTable, List<AlterOp> alterOps) throws DdlException {
+        TagLocationFilter oldFilter = null;
+        ReplicaAllocation replicaAlloc = null;
+        olapTable.readLock();
+        try {
+            oldFilter = olapTable.getEtlTagLocation();
+            replicaAlloc = olapTable.getTableProperty().getReplicaAllocation();
+        } finally {
+            olapTable.readUnlock();
+        }
+        TagLocationFilter newFilter = null;
+        for (AlterOp alterOp : alterOps) {
+            Map<String, String> properties = alterOp.getProperties();
+            if (properties == null || !properties.containsKey(PropertyAnalyzer.PROPERTIES_ETL_TAG_LOCATION)) {
+                continue;
+            }
+            try {
+                newFilter = PropertyAnalyzer.analyzeEtlTagLocation(properties, replicaAlloc, "", true);
+            } catch (AnalysisException e) {
+                throw new DdlException(e.getMessage());
+            }
+        }
+        if (newFilter.equals(oldFilter)) {
+            LOG.info("etl location not change");
+            return;
+        }
+        Map<String, String> properties = Maps.newHashMap();
+        properties.put(PropertyAnalyzer.PROPERTIES_ETL_TAG_LOCATION, newFilter.toTagLocationConfig());
+        olapTable.writeLockOrDdlException();
+        try {
+            Env.getCurrentEnv().modifyTableProperties(db, olapTable, properties);
+        } finally {
+            olapTable.writeUnlock();
+        }
     }
 
     private void removeColumnWhenDropGeneratedColumn(Column dropColumn, Map<String, Column> nameToColumn) {

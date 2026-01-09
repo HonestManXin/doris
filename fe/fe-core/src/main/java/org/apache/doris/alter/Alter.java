@@ -270,6 +270,8 @@ public class Alter {
             }
             // TODO(Drogon): check error
             ((SchemaChangeHandler) schemaChangeHandler).updateBinlogConfig(db, olapTable, alterOps);
+        } else if (currentAlterOps.checkEtlTagLocation(alterOps)) {
+            ((SchemaChangeHandler) schemaChangeHandler).updateEtlTagLocation(db, olapTable, alterOps);
         } else if (currentAlterOps.hasSchemaChangeOp()) {
             // schema change, or change properties that need schema change(dynamic partition, storage_medium...)
             schemaChangeHandler.process(sql, alterOps, db, olapTable);

@@ -3798,4 +3798,10 @@ public class Config extends ConfigBase {
                     + "by default"
     })
     public static boolean calc_delete_bitmap_get_versions_waiting_for_pending_txns = true;
+
+    @ConfField(mutable = true, description = {
+            "表serving和etl操作隔离，etl操作默认使用的副本be tag",
+            "Table serving and ETL operations are isolated, and the replica BE tag used for ETL operations"
+    })
+    public static String etl_tag_location = "";
 }

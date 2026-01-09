@@ -134,6 +134,8 @@ public class TableProperty implements GsonPostProcessable {
     // name mapping for show, it will be translated to unique id mapping when create tablet
     private Map<String, List<String>> columnSeqMapping = null;
 
+    private TagLocationFilter etlTagLocationFilter = TagLocationFilter.NO_FILTER;
+
     public TableProperty(Map<String, String> properties) {
         this.properties = properties;
     }
@@ -858,6 +860,32 @@ public class TableProperty implements GsonPostProcessable {
             LOG.error("should not happen when build replica allocation", e);
             this.replicaAlloc = ReplicaAllocation.DEFAULT_ALLOCATION;
         }
+    }
+
+    public TableProperty buildEtlTagLocation() {
+        try {
+            Map<String, String> copiedProperties = Maps.newHashMap(properties);
+            this.etlTagLocationFilter = PropertyAnalyzer.analyzeEtlTagLocation(copiedProperties, this.replicaAlloc,
+                    "", false);
+        } catch (AnalysisException e) {
+            LOG.error("should not happen when build etl tag location filter", e);
+            this.etlTagLocationFilter = TagLocationFilter.NO_FILTER;
+        }
+        return this;
+    }
+
+    public void setEtlTagLocation(TagLocationFilter filter) {
+        if (filter == TagLocationFilter.NO_FILTER) {
+            properties.remove(PropertyAnalyzer.PROPERTIES_ETL_TAG_LOCATION);
+        } else {
+            String value = filter.toTagLocationConfig();
+            properties.put(PropertyAnalyzer.PROPERTIES_ETL_TAG_LOCATION, value);
+        }
+        etlTagLocationFilter = filter;
+    }
+
+    public TagLocationFilter getEtlTagLocation() {
+        return etlTagLocationFilter;
     }
 
     public void gsonPostProcess() throws IOException {

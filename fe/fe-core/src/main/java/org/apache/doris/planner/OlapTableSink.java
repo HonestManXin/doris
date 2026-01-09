@@ -43,6 +43,7 @@ import org.apache.doris.catalog.RandomDistributionInfo;
 import org.apache.doris.catalog.RangePartitionItem;
 import org.apache.doris.catalog.Replica;
 import org.apache.doris.catalog.Tablet;
+import org.apache.doris.catalog.TagLocationFilter;
 import org.apache.doris.cloud.qe.ComputeGroupException;
 import org.apache.doris.common.AnalysisException;
 import org.apache.doris.common.Config;
@@ -81,6 +82,7 @@ import org.apache.doris.thrift.TUniqueKeyUpdateMode;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Range;
@@ -794,8 +796,7 @@ public class OlapTableSink extends DataSink {
 
                     if (singleReplicaLoad) {
                         Long[] nodes = bePathsMap.keySet().toArray(new Long[0]);
-                        Random random = new SecureRandom();
-                        Long masterNode = nodes[random.nextInt(nodes.length)];
+                        Long masterNode = getMasterNode(nodes, table);
                         Multimap<Long, Long> slaveBePathsMap = bePathsMap;
                         slaveBePathsMap.removeAll(masterNode);
                         locationParam.addToTablets(new TTabletLocation(tablet.getId(),
@@ -823,6 +824,36 @@ public class OlapTableSink extends DataSink {
             throw new DdlException(st.getErrorMsg());
         }
         return Arrays.asList(locationParam, slaveLocationParam);
+    }
+
+    private Long getMasterNode(Long[] nodes, OlapTable table) {
+        Random random = new SecureRandom();
+        long masterNode = nodes[random.nextInt(nodes.length)];
+        TagLocationFilter etlTagFilter = table.getEtlTagLocation();
+        if (table.getCatalogId() != Env.getCurrentInternalCatalog().getId()
+                || etlTagFilter.equals(TagLocationFilter.NO_FILTER)) {
+            return masterNode;
+        }
+        ImmutableMap<Long, Backend> beMap = null;
+        try {
+            beMap = table.getAllBackendsByAllCluster();
+        } catch (AnalysisException e) {
+            return masterNode;
+        }
+        List<Long> candidateIds = Lists.newArrayList();
+        for (Long nodeId : nodes) {
+            Backend be = beMap.get(nodeId);
+            if (be == null) {
+                continue;
+            }
+            if (etlTagFilter.containsBackend(be.getLocationTag().value)) {
+                candidateIds.add(nodeId);
+            }
+        }
+        if (candidateIds.isEmpty()) {
+            return masterNode;
+        }
+        return candidateIds.get(random.nextInt(candidateIds.size()));
     }
 
     private void debugWriteRandomChooseSink(Tablet tablet, long version, Multimap<Long, Long> bePathsMap) {
