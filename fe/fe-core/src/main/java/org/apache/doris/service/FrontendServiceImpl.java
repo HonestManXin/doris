@@ -4917,19 +4917,19 @@ public class FrontendServiceImpl implements FrontendService.Iface {
                     if (tablet instanceof CloudTablet) {
                         CloudTablet cloudTablet = (CloudTablet) tablet;
                         if (hasBeEndpoint) {
-                            bePathsMap = cloudTablet.getNormalReplicaBackendPathMap(request.be_endpoint);
+                            bePathsMap = cloudTablet.getLoadReplicaBackendPathMap(request.be_endpoint);
                         } else {
                             if (cachedClusterId == null) {
                                 cachedClusterId = ((CloudSystemInfoService) Env.getCurrentSystemInfo())
                                         .getCurrentClusterId();
                             }
-                            bePathsMap = cloudTablet.getNormalReplicaBackendPathMapByClusterId(cachedClusterId);
+                            bePathsMap = cloudTablet.getLoadReplicaBackendPathMapByClusterId(cachedClusterId);
                         }
                     } else if (tabletSnapshot.isChangelog()) {
                         bePathsMap = OlapTableSink.getChangelogColocatedReplicaBackendPathMap(
                                 tabletSnapshot.changelogBaseTablet, tablet);
                     } else {
-                        bePathsMap = tablet.getNormalReplicaBackendPathMap();
+                        bePathsMap = tablet.getLoadReplicaBackendPathMap();
                     }
                 } catch (UserException ex) {
                     errorStatus.setErrorMsgs(Lists.newArrayList(ex.getMessage()));
@@ -5250,20 +5250,20 @@ public class FrontendServiceImpl implements FrontendService.Iface {
                     if (tablet instanceof CloudTablet) {
                         CloudTablet cloudTablet = (CloudTablet) tablet;
                         if (replaceHasBeEndpoint) {
-                            bePathsMap = cloudTablet.getNormalReplicaBackendPathMap(request.be_endpoint);
+                            bePathsMap = cloudTablet.getLoadReplicaBackendPathMap(request.be_endpoint);
                         } else {
                             if (replaceCachedClusterId == null) {
                                 replaceCachedClusterId = ((CloudSystemInfoService) Env.getCurrentSystemInfo())
                                         .getCurrentClusterId();
                             }
                             bePathsMap = cloudTablet
-                                    .getNormalReplicaBackendPathMapByClusterId(replaceCachedClusterId);
+                                    .getLoadReplicaBackendPathMapByClusterId(replaceCachedClusterId);
                         }
                     } else if (tabletSnapshot.isChangelog()) {
                         bePathsMap = OlapTableSink.getChangelogColocatedReplicaBackendPathMap(
                                 tabletSnapshot.changelogBaseTablet, tablet);
                     } else {
-                        bePathsMap = tablet.getNormalReplicaBackendPathMap();
+                        bePathsMap = tablet.getLoadReplicaBackendPathMap();
                     }
                 } catch (UserException ex) {
                     errorStatus.setErrorMsgs(Lists.newArrayList(ex.getMessage()));
